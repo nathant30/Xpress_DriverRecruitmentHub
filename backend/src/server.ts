@@ -16,6 +16,7 @@ import { portalRoutes } from './api/portal.routes.js';
 import { webhooksRoutes } from './api/webhooks.routes.js';
 import { analyticsRoutes } from './api/analytics.routes.js';
 import { predictionsRoutes } from './api/predictions.routes.js';
+import { fieldOperatorRoutes } from './api/field-operator.routes.js';
 
 // Initialize Prisma
 export const prisma = new PrismaClient({
@@ -72,6 +73,7 @@ await app.register(portalRoutes, { prefix: '/api/portal' });
 await app.register(webhooksRoutes, { prefix: '/api/webhooks' });
 await app.register(analyticsRoutes, { prefix: '/api/analytics' });
 await app.register(predictionsRoutes, { prefix: '/api/predictions' });
+await app.register(fieldOperatorRoutes, { prefix: '/api/field-operator' });
 
 // Health check
 app.get('/health', async () => {

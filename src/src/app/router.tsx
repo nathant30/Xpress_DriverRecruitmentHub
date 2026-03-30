@@ -15,6 +15,7 @@ import { NewCandidatePage } from '@/features/candidates/routes/NewCandidatePage'
 import { FlowBuilderPage } from '@/features/flow-builder/routes/FlowBuilderPage';
 import { SettingsPage } from '@/features/settings/routes/SettingsPage';
 import { AnalyticsPage } from '@/features/analytics/routes/AnalyticsPage';
+import { FieldOperatorPage } from '@/features/field-operator/routes/FieldOperatorPage';
 
 export const router = createBrowserRouter([
   {
@@ -75,6 +76,10 @@ export const router = createBrowserRouter([
       {
         path: 'analytics',
         element: <AnalyticsPage />,
+      },
+      {
+        path: 'field-operator',
+        element: <FieldOperatorPage />,
       },
     ],
   },
