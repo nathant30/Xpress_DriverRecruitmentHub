@@ -1,0 +1,686 @@
+// Driver Recruitment Hub - Database Schema
+// Based on PRD v1.0 - March 30, 2026
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MANAGEMENT & RBAC
+// ============================================
+
+enum UserRole {
+  ADMIN
+  RECRUITMENT_MANAGER
+  RECRUITER
+  HIRING_MANAGER
+  MARKETING_VIEWER
+  FIELD_OPERATOR_RECRUITER
+  AGENCY
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  fullName        String    @map("full_name")
+  role            UserRole
+  phone           String?
+  avatarUrl       String?   @map("avatar_url")
+  
+  // Zone assignment for scoping
+  assignedZones   Zone[]    @relation("UserAssignedZones")
+  
+  // For agencies
+  agencyId        String?   @map("agency_id")
+  agency          Agency?   @relation(fields: [agencyId], references: [id])
+  
+  // Recruiter performance
+  assignedCandidates Candidate[] @relation("AssignedRecruiter")
+  interactions    CandidateInteractionLog[]
+  
+  // Flow builder
+  flowVersions    ApplicationFlowVersion[] @relation("PublishedBy")
+  
+  // Auth
+  passwordHash    String?   @map("password_hash")
+  lastLoginAt     DateTime? @map("last_login_at")
+  
+  // Soft delete
+  isActive        Boolean   @default(true) @map("is_active")
+  deletedAt       DateTime? @map("deleted_at")
+  
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Agency {
+  id          String   @id @default(uuid())
+  name        String
+  contactEmail String  @map("contact_email")
+  contactPhone String  @map("contact_phone")
+  
+  users       User[]
+  candidates  Candidate[]
+  
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("agencies")
+}
+
+// ============================================
+// ZONES & LOCATIONS
+// ============================================
+
+model Zone {
+  id          String   @id @default(uuid())
+  name        String
+  region      String
+  description String?
+  
+  // Geo data from OpsTower
+  geoJson     String?  @map("geo_json")
+  
+  // Recruiting status
+  recruitingStatus RecruitingStatus @default(ACTIVELY_RECRUITING) @map("recruiting_status")
+  
+  // Relations
+  candidates  Candidate[]
+  headcountTargets HeadcountTarget[]
+  driverAppCampaigns DriverAppCampaign[]
+  assignedUsers User[] @relation("UserAssignedZones")
+  kioskDevices KioskDevice[]
+  
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("zones")
+}
+
+enum RecruitingStatus {
+  ACTIVELY_RECRUITING
+  PAUSED
+  AT_CAPACITY
+}
+
+// ============================================
+// CANDIDATES - Core Entity
+// ============================================
+
+enum ServiceType {
+  MOTO
+  SEDAN_SUV
+  TAXI
+  ETRIKE
+  DELIVERY
+}
+
+enum EmploymentType {
+  CONTRACTOR
+  SALARIED
+  OPERATOR
+}
+
+enum SourceChannel {
+  JOBBoard
+  SOCIAL_AD
+  DRIVER_APP
+  FO_REFERRAL
+  DRIVER_REFERRAL
+  WALK_IN
+  LGU_PARTNER
+  AGENCY
+  WEBSITE_ORGANIC
+}
+
+enum PipelineVariant {
+  STANDARD
+  ABBREVIATED
+  ROLE_CHANGE
+}
+
+enum PipelineStage {
+  APPLICATION
+  SCREENING
+  DOCS_SUBMITTED
+  DOCS_VERIFIED
+  BACKGROUND_CHECK
+  TRAINING
+  VEHICLE_INSPECTION
+  CONTRACT_SIGNING
+  ONBOARDED
+  REJECTED
+  WITHDRAWN
+}
+
+model Candidate {
+  id              String   @id @default(uuid())
+  
+  // Basic Profile
+  fullName        String   @map("full_name")
+  phonePrimary    String   @map("phone_primary")
+  phoneSecondary  String?  @map("phone_secondary")
+  email           String?
+  dateOfBirth     DateTime? @map("date_of_birth")
+  address         String?
+  
+  // Zone & Service
+  zoneId          String   @map("zone_id")
+  zone            Zone     @relation(fields: [zoneId], references: [id])
+  serviceType     ServiceType @map("service_type")
+  employmentType  EmploymentType? @map("employment_type")
+  
+  // Source Attribution
+  sourceChannel   SourceChannel @map("source_channel")
+  sourceCampaignId String?    @map("source_campaign_id")
+  sourceFoId      String?     @map("source_fo_id")
+  sourceReferringDriverId String? @map("source_referring_driver_id")
+  sourceAgencyId  String?     @map("source_agency_id")
+  agency          Agency?     @relation(fields: [sourceAgencyId], references: [id])
+  sourceM12ContactId String?  @map("source_m12_contact_id")
+  
+  // Existing Driver (from Driver App)
+  existingDriverId String?    @map("existing_driver_id")
+  isExistingDriver Boolean   @default(false) @map("is_existing_driver")
+  
+  // Pipeline
+  pipelineVariant PipelineVariant @default(STANDARD) @map("pipeline_variant")
+  currentStage    PipelineStage @default(APPLICATION) @map("current_stage")
+  stageEnteredAt  DateTime    @default(now()) @map("stage_entered_at")
+  
+  // Assignment
+  assignedRecruiterId String? @map("assigned_recruiter_id")
+  assignedRecruiter   User?   @relation("AssignedRecruiter", fields: [assignedRecruiterId], references: [id])
+  
+  // OpsTower Handoff
+  opstowerDriverId String?    @map("opstower_driver_id")
+  
+  // Status Reasons
+  rejectionReason  String?    @map("rejection_reason")
+  withdrawalReason String?    @map("withdrawal_reason")
+  
+  // Notes
+  notes           String?
+  
+  // Candidate Portal
+  candidatePortalToken String @unique @map("candidate_portal_token")
+  
+  // Relations
+  documents       CandidateDocument[]
+  interactionLogs CandidateInteractionLog[]
+  applicationData CandidateApplicationData?
+  
+  // Application flow tracking
+  flowVersionId   String?     @map("flow_version_id")
+  flowVersion     ApplicationFlowVersion? @relation(fields: [flowVersionId], references: [id])
+  
+  // Timestamps
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  @@index([currentStage])
+  @@index([zoneId, serviceType])
+  @@index([assignedRecruiterId])
+  @@index([sourceChannel])
+  @@index([phonePrimary])
+  @@index([candidatePortalToken])
+  @@map("candidates")
+}
+
+// ============================================
+// CANDIDATE DOCUMENTS
+// ============================================
+
+enum DocumentStatus {
+  NOT_SUBMITTED
+  SUBMITTED
+  APPROVED
+  REJECTED
+  SKIPPED_EXISTING_DRIVER
+}
+
+enum DocumentType {
+  GOVERNMENT_ID
+  DRIVERS_LICENSE
+  NBI_CLEARANCE
+  PROOF_OF_ADDRESS
+  VEHICLE_OR_CR
+  VEHICLE_PHOTO_FRONT
+  VEHICLE_PHOTO_REAR
+  VEHICLE_PHOTO_SIDE
+  INSURANCE_CERTIFICATE
+  LTFRB_FRANCHISE
+  MEDICAL_CERTIFICATE
+  DRUG_TEST_RESULT
+  FOOD_HANDLING_CERTIFICATE
+  SELFIE_PHOTO
+  CONTRACT
+  BANK_DOCUMENT
+  OTHER
+}
+
+model CandidateDocument {
+  id              String   @id @default(uuid())
+  candidateId     String   @map("candidate_id")
+  candidate       Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  documentType    DocumentType @map("document_type")
+  status          DocumentStatus @default(NOT_SUBMITTED)
+  
+  fileUrl         String?  @map("file_url")
+  ocrExtractedData Json?   @map("ocr_extracted_data")
+  
+  submittedAt     DateTime? @map("submitted_at")
+  reviewedBy      String?   @map("reviewed_by")
+  reviewedAt      DateTime? @map("reviewed_at")
+  rejectionReason String?   @map("rejection_reason")
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([candidateId])
+  @@index([status])
+  @@map("candidate_documents")
+}
+
+// ============================================
+// INTERACTION LOG
+// ============================================
+
+enum InteractionType {
+  PHONE_CALL
+  WHATSAPP
+  SMS
+  EMAIL
+  IN_PERSON
+  DOCUMENT_REVIEW
+  TRAINING_SESSION
+  INSPECTION
+  CONTRACT_MEETING
+  NOTE
+  STAGE_TRANSITION
+  MESSAGE_SENT
+}
+
+enum InteractionOutcome {
+  POSITIVE
+  NEUTRAL
+  NEEDS_FOLLOWUP
+  STAGE_ADVANCED
+  REJECTED
+  WITHDREW
+}
+
+model CandidateInteractionLog {
+  id              String   @id @default(uuid())
+  candidateId     String   @map("candidate_id")
+  candidate       Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  recruiterId     String   @map("recruiter_id")
+  recruiter       User     @relation(fields: [recruiterId], references: [id])
+  
+  interactionDate DateTime @map("interaction_date")
+  interactionType InteractionType @map("interaction_type")
+  outcome         InteractionOutcome?
+  summary         String
+  
+  stageBefore     PipelineStage? @map("stage_before")
+  stageAfter      PipelineStage? @map("stage_after")
+  
+  attachments     Json?    // Array of S3 URLs
+  
+  loggedAt        DateTime @default(now()) @map("logged_at")
+  isEditable      Boolean  @default(true) @map("is_editable")
+  editExpiresAt   DateTime @map("edit_expires_at")
+
+  @@index([candidateId])
+  @@index([recruiterId])
+  @@index([interactionDate])
+  @@map("candidate_interaction_logs")
+}
+
+// ============================================
+// APPLICATION FLOW BUILDER
+// ============================================
+
+enum FlowStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model ApplicationFlow {
+  id          String   @id @default(uuid())
+  name        String   @default("Default Application Flow")
+  description String?
+  
+  versions    ApplicationFlowVersion[]
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("application_flows")
+}
+
+model ApplicationFlowVersion {
+  id          String   @id @default(uuid())
+  flowId      String   @map("flow_id")
+  flow        ApplicationFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  
+  versionNumber Int    @map("version_number")
+  status      FlowStatus @default(DRAFT)
+  
+  // Version metadata
+  publishedBy String?  @map("published_by")
+  publisher   User?    @relation("PublishedBy", fields: [publishedBy], references: [id])
+  publishedAt DateTime? @map("published_at")
+  changeSummary String? @map("change_summary")
+  
+  // Flow content
+  steps       FlowStep[]
+  
+  // Relations
+  candidates  Candidate[]
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([flowId, versionNumber])
+  @@index([status])
+  @@map("application_flow_versions")
+}
+
+enum StepType {
+  WELCOME
+  SERVICE_TYPE_SELECTION
+  ZONE_SELECTION
+  PERSONAL_DETAILS
+  DOCUMENT_UPLOAD
+  VEHICLE_DETAILS
+  AVAILABILITY_SHIFT
+  EMERGENCY_CONTACT
+  BANK_PAYMENT_DETAILS
+  QUIZ_KNOWLEDGE
+  DECLARATIONS_AGREEMENTS
+  E_SIGNATURE
+}
+
+model FlowStep {
+  id              String   @id @default(uuid())
+  versionId       String   @map("version_id")
+  version         ApplicationFlowVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  
+  stepNumber      Int      @map("step_number")
+  stepType        StepType @map("step_type")
+  title           String
+  description     String?
+  
+  // Configuration
+  config          Json     // Step-specific configuration
+  
+  // Visibility conditions
+  conditions      Json?    // Array of condition rules
+  isActive        Boolean  @default(true) @map("is_active")
+  
+  // Fields within this step
+  fields          FlowField[]
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([versionId])
+  @@index([stepNumber])
+  @@map("flow_steps")
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  PHONE
+  EMAIL
+  DROPDOWN
+  MULTI_SELECT
+  RADIO
+  CHECKBOX
+  FILE_UPLOAD
+  SIGNATURE
+  RICH_TEXT
+}
+
+model FlowField {
+  id          String   @id @default(uuid())
+  stepId      String   @map("step_id")
+  step        FlowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  
+  fieldKey    String   @map("field_key") // Unique identifier for this field
+  fieldType   FieldType @map("field_type")
+  label       String
+  placeholder String?
+  helpText    String?  @map("help_text")
+  
+  // Validation
+  isRequired  Boolean  @default(false) @map("is_required")
+  validationRules Json? @map("validation_rules") // min, max, pattern, etc.
+  
+  // Options for select/dropdown
+  options     Json?    // Array of {label, value}
+  
+  // Conditional visibility
+  visibilityConditions Json? @map("visibility_conditions")
+  
+  // Default value
+  defaultValue String? @map("default_value")
+  
+  orderIndex  Int      @map("order_index")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([stepId])
+  @@map("flow_fields")
+}
+
+// ============================================
+// CANDIDATE APPLICATION DATA
+// ============================================
+
+model CandidateApplicationData {
+  id          String   @id @default(uuid())
+  candidateId String   @unique @map("candidate_id")
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  // Raw form data from flow
+  formData    Json     @map("form_data")
+  
+  // Step completion tracking
+  completedSteps Json  @map("completed_steps") // Array of step IDs
+  currentStepId  String? @map("current_step_id")
+  
+  // Progress
+  progressPercent Int @default(0) @map("progress_percent")
+  
+  // Submission
+  isSubmitted Boolean @default(false) @map("is_submitted")
+  submittedAt DateTime? @map("submitted_at")
+  
+  // Auto-abandonment tracking
+  lastActivityAt DateTime @default(now()) @map("last_activity_at")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("candidate_application_data")
+}
+
+// ============================================
+// HEADCOUNT TARGETS
+// ============================================
+
+enum TargetPeriod {
+  MONTHLY
+  QUARTERLY
+}
+
+model HeadcountTarget {
+  id              String   @id @default(uuid())
+  zoneId          String   @map("zone_id")
+  zone            Zone     @relation(fields: [zoneId], references: [id])
+  
+  serviceType     ServiceType @map("service_type")
+  targetCount     Int      @map("target_count")
+  targetPeriod    TargetPeriod @default(MONTHLY) @map("target_period")
+  
+  recruitingStatus RecruitingStatus @default(ACTIVELY_RECRUITING) @map("recruiting_status")
+  
+  effectiveFrom   DateTime @map("effective_from")
+  effectiveTo     DateTime? @map("effective_to")
+  
+  createdBy       String   @map("created_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([zoneId, serviceType, effectiveFrom])
+  @@index([zoneId, serviceType])
+  @@map("headcount_targets")
+}
+
+// ============================================
+// DRIVER APP CAMPAIGNS
+// ============================================
+
+model DriverAppCampaign {
+  id              String   @id @default(uuid())
+  zoneId          String   @map("zone_id")
+  zone            Zone     @relation(fields: [zoneId], references: [id])
+  
+  serviceType     ServiceType @map("service_type")
+  
+  headline        String   @db.VarChar(60)
+  body            String   @db.VarChar(120)
+  
+  // Eligible driver filter
+  eligibleDriverFilter Json @map("eligible_driver_filter")
+  
+  isActive        Boolean  @default(true) @map("is_active")
+  expiresAt       DateTime @map("expires_at")
+  
+  createdBy       String   @map("created_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([zoneId, serviceType])
+  @@index([isActive, expiresAt])
+  @@map("driver_app_campaigns")
+}
+
+// ============================================
+// KIOSK DEVICES
+// ============================================
+
+enum KioskMode {
+  SELF_SERVICE
+  STAFF_ASSISTED
+}
+
+model KioskDevice {
+  id              String   @id @default(uuid())
+  deviceName      String   @map("device_name")
+  deviceCode      String   @unique @map("device_code") // 6-digit alphanumeric pairing code
+  
+  zoneId          String   @map("zone_id")
+  zone            Zone     @relation(fields: [zoneId], references: [id])
+  
+  defaultServiceType ServiceType? @map("default_service_type")
+  mode            KioskMode @default(SELF_SERVICE)
+  defaultLanguage String   @default("en") @map("default_language")
+  
+  // Session config
+  sessionTimeoutMinutes Int @default(15) @map("session_timeout_minutes")
+  
+  isActive        Boolean  @default(true) @map("is_active")
+  lastSeenAt      DateTime? @map("last_seen_at")
+  
+  pairedAt        DateTime @map("paired_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([zoneId])
+  @@index([deviceCode])
+  @@map("kiosk_devices")
+}
+
+// ============================================
+// DOCUMENT REQUIREMENTS CONFIG
+// ============================================
+
+model DocumentRequirement {
+  id              String   @id @default(uuid())
+  serviceType     ServiceType @map("service_type")
+  documentType    DocumentType @map("document_type")
+  
+  isRequired      Boolean  @default(true) @map("is_required")
+  requiresOcr     Boolean  @default(false) @map("requires_ocr")
+  uploadGuidance  String?  @map("upload_guidance")
+  exampleImageUrl String?  @map("example_image_url")
+  
+  orderIndex      Int      @map("order_index")
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([serviceType, documentType])
+  @@index([serviceType])
+  @@map("document_requirements")
+}
+
+// ============================================
+// MESSAGE TEMPLATES
+// ============================================
+
+enum MessageChannel {
+  WHATSAPP
+  SMS
+  EMAIL
+}
+
+model MessageTemplate {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  trigger         String   // When this template is sent
+  channel         MessageChannel
+  
+  subject         String?  // For email
+  body            String   // Template with placeholders
+  
+  isActive        Boolean  @default(true) @map("is_active")
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("message_templates")
+}
+
+// ============================================
+// SETTINGS & CONFIG
+// ============================================
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_config")
+}
