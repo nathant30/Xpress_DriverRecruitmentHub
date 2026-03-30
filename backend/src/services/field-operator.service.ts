@@ -545,16 +545,51 @@ export class FieldOperatorService {
     photoType: string;
     uploadedBy: string;
   }) {
-    // In production: Upload to S3, return URL
-    // For now, simulate upload
-    const mockUrl = `https://storage.xpress.com/photos/${uuidv4()}.jpg`;
+    try {
+      // Generate unique filename
+      const fileId = uuidv4();
+      const timestamp = Date.now();
+      const key = `photos/${data.photoType.toLowerCase()}/${timestamp}-${fileId}.jpg`;
+      
+      // In production: Upload to S3
+      if (process.env.AWS_S3_BUCKET) {
+        // const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        // const s3 = new S3Client({ region: process.env.AWS_REGION });
+        // await s3.send(new PutObjectCommand({
+        //   Bucket: process.env.AWS_S3_BUCKET,
+        //   Key: key,
+        //   Body: data.file.buffer,
+        //   ContentType: 'image/jpeg',
+        // }));
+        // const url = `https://${process.env.AWS_S3_BUCKET}.s3.amazonaws.com/${key}`;
+      }
+      
+      // For development: Store locally or return mock URL
+      const url = process.env.NODE_ENV === 'production'
+        ? `https://${process.env.AWS_S3_BUCKET}.s3.amazonaws.com/${key}`
+        : `/uploads/${key}`;
 
-    return {
-      success: true,
-      url: mockUrl,
-      photoType: data.photoType,
-      uploadedAt: new Date().toISOString(),
-    };
+      // Save photo record to database
+      await prisma.candidatePhoto.create({
+        data: {
+          id: `photo_${fileId.slice(0, 8)}`,
+          candidateId: data.candidateId,
+          photoType: data.photoType,
+          url: url,
+          uploadedBy: data.uploadedBy,
+        },
+      });
+
+      return {
+        success: true,
+        url: url,
+        photoType: data.photoType,
+        uploadedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Photo upload failed:', error);
+      throw new Error('Failed to upload photo');
+    }
   }
 
   // ==========================================

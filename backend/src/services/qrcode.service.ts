@@ -54,12 +54,32 @@ export class QRCodeService {
   // ==========================================
 
   static async getQRCodeImage(qrCodeId: string): Promise<Buffer> {
-    // In production: Generate PNG using node-qrcode library
-    // const QRCode = require('qrcode');
-    // return await QRCode.toBuffer(qrData, { width: 500, margin: 2 });
-
-    // Mock: Return empty buffer
-    return Buffer.from('QR_CODE_IMAGE_DATA');
+    try {
+      // Dynamically import qrcode library
+      const QRCode = await import('qrcode');
+      
+      const qrData = JSON.stringify({
+        v: '1.0',
+        type: 'FO_REFERRAL',
+        id: qrCodeId,
+      });
+      
+      // Generate PNG buffer
+      const buffer = await QRCode.toBuffer(qrData, {
+        type: 'png',
+        width: 500,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF',
+        },
+      });
+      
+      return buffer;
+    } catch (error) {
+      console.error('QR Code generation failed:', error);
+      throw new Error('Failed to generate QR code image');
+    }
   }
 
   // ==========================================

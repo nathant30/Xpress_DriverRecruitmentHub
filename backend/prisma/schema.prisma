@@ -1083,3 +1083,24 @@ model SOSAlert {
   @@index([createdAt])
   @@map("sos_alerts")
 }
+
+
+// ============================================
+// FIELD OPERATOR PHOTOS
+// ============================================
+
+model CandidatePhoto {
+  id              String   @id @default(uuid())
+  candidateId     String?  @map("candidate_id")
+  candidate       Candidate? @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  photoType       String   @map("photo_type") // SELFIE, ID, VEHICLE, etc.
+  url             String
+  
+  uploadedBy      String   @map("uploaded_by")
+  uploadedAt      DateTime @default(now()) @map("uploaded_at")
+  
+  @@index([candidateId])
+  @@index([uploadedBy])
+  @@map("candidate_photos")
+}
