@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { candidatesApi } from '@/shared/lib/api';
 import { TransferToOpsTowerButton } from '../components/TransferToOpsTowerButton';
+import { PredictionsPanel } from '@/features/predictions/components/PredictionsPanel';
 import { format } from 'date-fns';
 
 const STAGE_OPTIONS = [
@@ -189,6 +190,13 @@ export function CandidateDetailPage() {
               </p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ML Predictions Panel */}
+      <div className="card">
+        <div className="card-body">
+          <PredictionsPanel candidateId={candidate.id} />
         </div>
       </div>
 

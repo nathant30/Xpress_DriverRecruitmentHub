@@ -7,7 +7,8 @@ import {
   FileText,
   LogOut,
   ChevronDown,
-  Bell
+  Bell,
+  BarChart3
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useState } from 'react';
@@ -16,6 +17,7 @@ const navigation = [
   { name: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
   { name: 'Pipeline', to: '/pipeline', icon: GitBranch },
   { name: 'Candidates', to: '/candidates', icon: Users },
+  { name: 'Analytics', to: '/analytics', icon: BarChart3 },
   { name: 'Flow Builder', to: '/flow-builder', icon: FileText },
   { name: 'Settings', to: '/settings', icon: Settings },
 ];

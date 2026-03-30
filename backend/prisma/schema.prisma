@@ -684,3 +684,224 @@ model SystemConfig {
 
   @@map("system_config")
 }
+
+// ============================================
+// SOURCE QUALITY ANALYTICS
+// ============================================
+
+model DriverPerformanceSnapshot {
+  id              String   @id @default(uuid())
+  
+  // Link to candidate
+  candidateId     String   @map("candidate_id")
+  candidate       Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  // Snapshot metadata
+  snapshotType    String   @map("snapshot_type") // FIRST_SHIFT, DAY_30, DAY_60, DAY_90, TIER_CHANGE, DEACTIVATION
+  snapshotDate    DateTime @map("snapshot_date")
+  daysSinceOnboarding Int @map("days_since_onboarding")
+  
+  // Performance metrics
+  isStillActive   Boolean? @map("is_still_active")
+  tripsCompleted  Int?     @map("trips_completed")
+  avgCompletionRate Float? @map("avg_completion_rate")
+  avgCancellationRate Float? @map("avg_cancellation_rate")
+  gmvGenerated    Float?   @map("gmv_generated")
+  currentTier     String?  @map("current_tier") // UNRANKED, BRONZE, SILVER, GOLD, PLATINUM
+  incidentsCount  Int?     @default(0) @map("incidents_count")
+  
+  // First shift specific
+  firstShiftDate  DateTime? @map("first_shift_date")
+  firstShiftTrips Int?     @map("first_shift_trips")
+  firstShiftGmv   Float?   @map("first_shift_gmv")
+  firstShiftCompletionRate Float? @map("first_shift_completion_rate")
+  
+  // Tier change specific
+  priorTier       String?  @map("prior_tier")
+  newTier         String?  @map("new_tier")
+  
+  // Deactivation specific
+  deactivationDate DateTime? @map("deactivation_date")
+  deactivationReason String? @map("deactivation_reason")
+  daysActiveTotal Int?     @map("days_active_total")
+  
+  // Raw data from OpsTower
+  rawData         Json?    @map("raw_data")
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([candidateId])
+  @@index([snapshotType])
+  @@index([snapshotDate])
+  @@map("driver_performance_snapshots")
+}
+
+model SourceQualityScore {
+  id              String   @id @default(uuid())
+  
+  // Dimensions
+  sourceChannel   String   @map("source_channel")
+  zoneId          String?  @map("zone_id")
+  serviceType     String?  @map("service_type")
+  campaignId      String?  @map("campaign_id")
+  recruiterId     String?  @map("recruiter_id")
+  
+  // Period
+  periodStart     DateTime @map("period_start")
+  periodEnd       DateTime @map("period_end")
+  
+  // Pipeline metrics
+  applicationCount Int     @default(0) @map("application_count")
+  screenedCount   Int      @default(0) @map("screened_count")
+  docsSubmittedCount Int   @default(0) @map("docs_submitted_count")
+  docsVerifiedCount Int    @default(0) @map("docs_verified_count")
+  backgroundCheckCount Int @default(0) @map("background_check_count")
+  trainingCompletedCount Int @default(0) @map("training_completed_count")
+  onboardedCount  Int      @default(0) @map("onboarded_count")
+  rejectedCount   Int      @default(0) @map("rejected_count")
+  withdrawnCount  Int      @default(0) @map("withdrawn_count")
+  
+  // Conversion rates
+  screeningPassRate Float? @map("screening_pass_rate")
+  documentCompletionRate Float? @map("document_completion_rate")
+  documentApprovalRate Float? @map("document_approval_rate")
+  overallConversionRate Float? @map("overall_conversion_rate")
+  avgDaysToOnboard Float?  @map("avg_days_to_onboard")
+  
+  // Post-hire metrics (from OpsTower snapshots)
+  firstShiftCompletionRate Float? @map("first_shift_completion_rate")
+  retention30Day  Float?   @map("retention_30_day")
+  retention60Day  Float?   @map("retention_60_day")
+  retention90Day  Float?   @map("retention_90_day")
+  avgCompletionRate30Day Float? @map("avg_completion_rate_30_day")
+  avgGmv30Day     Float?   @map("avg_gmv_30_day")
+  bronzePlusRate90Day Float? @map("bronze_plus_rate_90_day")
+  earlyDeactivationRate Float? @map("early_deactivation_rate")
+  
+  // Quality Score (composite 0-100)
+  qualityScore    Float?   @map("quality_score")
+  qualityScoreComponents Json? @map("quality_score_components")
+  
+  // Trend vs prior period
+  priorPeriodQualityScore Float? @map("prior_period_quality_score")
+  trend           String?  @map("trend") // IMPROVED, DECLINED, STABLE
+  
+  // Sample size warning
+  sampleSize      Int      @default(0) @map("sample_size")
+  hasSufficientData Boolean @default(false) @map("has_sufficient_data")
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([sourceChannel, zoneId, serviceType, periodStart])
+  @@index([sourceChannel])
+  @@index([zoneId])
+  @@index([periodStart])
+  @@index([qualityScore])
+  @@map("source_quality_scores")
+}
+
+// ============================================
+// ML PREDICTIONS & INTELLIGENCE
+// ============================================
+
+model MLPrediction {
+  id              String   @id @default(uuid())
+  
+  // What is being predicted
+  candidateId     String   @map("candidate_id")
+  candidate       Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  predictionType  String   @map("prediction_type") // PRE_HIRE_QUALITY, DROP_OFF_RISK, TIME_TO_ONBOARD, etc.
+  
+  // Prediction output
+  predictionValue String   @map("prediction_value") // Store as string to handle different types
+  confidenceScore Float?   @map("confidence_score") // 0-1
+  
+  // Explainability - why this prediction was made
+  keyFactors      Json     @map("key_factors") // Array of {factor, weight, description}
+  explanation     String   @map("explanation") // Human-readable explanation
+  
+  // Model metadata
+  modelVersion    String   @map("model_version")
+  featuresUsed    Json     @map("features_used") // Which input features were used
+  
+  // Lifecycle
+  predictedAt     DateTime @default(now()) @map("predicted_at")
+  expiresAt       DateTime? @map("expires_at") // Predictions may become stale
+  
+  // Validation (ground truth)
+  actualOutcome   String?  @map("actual_outcome") // What actually happened
+  accuracy        Float?   @map("accuracy") // Difference between prediction and actual
+  validatedAt     DateTime? @map("validated_at")
+  
+  // Human feedback
+  recruiterFeedback String? @map("recruiter_feedback") // ACCURATE, INACCURATE, NOT_SURE
+  
+  @@index([candidateId])
+  @@index([predictionType])
+  @@index([predictedAt])
+  @@map("ml_predictions")
+}
+
+model MLModelConfig {
+  id              String   @id @default(uuid())
+  
+  modelType       String   @unique @map("model_type") // PRE_HIRE_QUALITY, CHURN_PREDICTION, etc.
+  modelVersion    String   @map("model_version")
+  
+  // Configuration
+  isActive        Boolean  @default(true) @map("is_active")
+  config          Json     @map("config") // Model-specific config
+  
+  // Performance tracking
+  totalPredictions Int     @default(0) @map("total_predictions")
+  accuracyRate    Float?   @map("accuracy_rate")
+  lastTrainedAt   DateTime? @map("last_trained_at")
+  
+  // Feature flags
+  showToRecruiters Boolean @default(false) @map("show_to_recruiters") // Gradual rollout
+  requiresHumanConfirmation Boolean @default(true) @map("requires_human_confirmation")
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("ml_model_configs")
+}
+
+// ============================================
+// SYNC STATUS & AUDIT
+// ============================================
+
+model SyncStatus {
+  id              String   @id @default(uuid())
+  
+  entityType      String   @map("entity_type") // CANDIDATE, DRIVER, etc.
+  entityId        String   @map("entity_id")
+  
+  syncDirection   String   @map("sync_direction") // TO_OPSTOWER, FROM_OPSTOWER
+  syncType        String   @map("sync_type") // ONBOARDING, PERFORMANCE_SNAPSHOT, etc.
+  
+  status          String   @map("status") // PENDING, IN_PROGRESS, SUCCESS, FAILED
+  
+  // Attempt tracking
+  attemptCount    Int      @default(0) @map("attempt_count")
+  lastAttemptAt   DateTime? @map("last_attempt_at")
+  nextRetryAt     DateTime? @map("next_retry_at")
+  
+  // Error tracking
+  lastError       String?  @map("last_error")
+  errorDetails    Json?    @map("error_details")
+  
+  // Success tracking
+  succeededAt     DateTime? @map("succeeded_at")
+  payloadSize     Int?     @map("payload_size")
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([entityType, entityId, syncType])
+  @@index([status])
+  @@index([nextRetryAt])
+  @@map("sync_status")
+}

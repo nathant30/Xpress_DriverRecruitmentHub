@@ -14,6 +14,8 @@ import { flowBuilderRoutes } from './api/flow-builder.routes.js';
 import { settingsRoutes } from './api/settings.routes.js';
 import { portalRoutes } from './api/portal.routes.js';
 import { webhooksRoutes } from './api/webhooks.routes.js';
+import { analyticsRoutes } from './api/analytics.routes.js';
+import { predictionsRoutes } from './api/predictions.routes.js';
 
 // Initialize Prisma
 export const prisma = new PrismaClient({
@@ -68,6 +70,8 @@ await app.register(flowBuilderRoutes, { prefix: '/api/flow-builder' });
 await app.register(settingsRoutes, { prefix: '/api/settings' });
 await app.register(portalRoutes, { prefix: '/api/portal' });
 await app.register(webhooksRoutes, { prefix: '/api/webhooks' });
+await app.register(analyticsRoutes, { prefix: '/api/analytics' });
+await app.register(predictionsRoutes, { prefix: '/api/predictions' });
 
 // Health check
 app.get('/health', async () => {

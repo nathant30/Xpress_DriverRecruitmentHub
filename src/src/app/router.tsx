@@ -14,6 +14,7 @@ import { CandidateDetailPage } from '@/features/candidates/routes/CandidateDetai
 import { NewCandidatePage } from '@/features/candidates/routes/NewCandidatePage';
 import { FlowBuilderPage } from '@/features/flow-builder/routes/FlowBuilderPage';
 import { SettingsPage } from '@/features/settings/routes/SettingsPage';
+import { AnalyticsPage } from '@/features/analytics/routes/AnalyticsPage';
 
 export const router = createBrowserRouter([
   {
@@ -70,6 +71,10 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <SettingsPage />,
+      },
+      {
+        path: 'analytics',
+        element: <AnalyticsPage />,
       },
     ],
   },
