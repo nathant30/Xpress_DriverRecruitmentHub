@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/shared/lib/api';
+import { analyticsApi } from '@/shared/lib/api';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { SourceQualityScoreboard } from '../components/SourceQualityScoreboard';
 import { RecruiterPerformanceTable } from '../components/RecruiterPerformanceTable';
@@ -39,12 +39,11 @@ export function AnalyticsDashboard() {
   const { data: scoreboardData, isLoading, refetch } = useQuery({
     queryKey: ['analytics', 'source-quality', filters],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      params.append('period', filters.period);
-      if (filters.zoneId) params.append('zoneId', filters.zoneId);
-      if (filters.serviceType) params.append('serviceType', filters.serviceType);
-      
-      const response = await api.get(`/analytics/source-quality/scoreboard?${params.toString()}`);
+      const params: Record<string, any> = { period: filters.period };
+      if (filters.zoneId) params.zoneId = filters.zoneId;
+      if (filters.serviceType) params.serviceType = filters.serviceType;
+
+      const response = await analyticsApi.getSourceQualityScoreboard(params);
       return response.data;
     },
   });

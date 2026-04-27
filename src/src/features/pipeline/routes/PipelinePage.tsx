@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  Search, 
-  Filter, 
+  Search,
+  Filter,
   Plus,
   MoreHorizontal,
   Clock,
   AlertCircle,
-  CheckCircle2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { candidatesApi } from '@/shared/lib/api';
@@ -132,7 +131,7 @@ function CandidateCard({ candidate }: CandidateCardProps) {
 }
 
 export function PipelinePage() {
-  const [selectedStage, setSelectedStage] = useState<string | null>(null);
+  const [selectedStage, _setSelectedStage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: candidatesData, isLoading } = useQuery({

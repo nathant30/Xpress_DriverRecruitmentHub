@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { 
-  Users, 
-  UserCheck, 
-  Clock, 
+  Users,
+  Clock,
   AlertTriangle,
   TrendingUp,
   Filter
@@ -151,7 +150,7 @@ export function DashboardPage() {
     );
   }
 
-  const { pipeline, recentCandidates, slaBreaches, headcount, channels } = dashboardData || {};
+  const { pipeline, recentCandidates, slaBreaches, channels } = dashboardData || {};
   const totalActive = pipeline?.totalActive || 0;
   const conversionRate = pipeline?.conversionRates?.applicationToOnboarded || 0;
 

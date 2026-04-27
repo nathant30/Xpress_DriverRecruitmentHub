@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { analyticsApi } from '@/shared/lib/api';
 import { RefreshCw, CheckCircle, AlertCircle, Clock, Database } from 'lucide-react';
 import { useState } from 'react';
 
@@ -18,7 +18,7 @@ export function SyncStatusPanel() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['analytics', 'sync-status'],
     queryFn: async () => {
-      const response = await api.get('/analytics/sync-status');
+      const response = await analyticsApi.getSyncStatus();
       return response.data;
     },
     refetchInterval: 30000, // Refresh every 30 seconds

@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  Plus, 
-  Settings, 
-  Eye, 
+  Plus,
+  Settings,
+  Eye,
   Save,
-  Play,
   GripVertical
 } from 'lucide-react';
 import { flowBuilderApi } from '@/shared/lib/api';

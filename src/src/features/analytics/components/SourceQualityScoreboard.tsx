@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Medal, ChevronDown, ChevronUp, ArrowUpRight, Eye } from 'lucide-react';
+import { Medal, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { formatSourceChannel } from '../utils/formatters';
 
 interface SourceQualityItem {

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { analyticsApi } from '@/shared/lib/api';
 import { Star, Target, Clock, Users } from 'lucide-react';
 
 interface Props {
@@ -21,7 +21,7 @@ export function RecruiterPerformanceTable({ period }: Props) {
   const { data, isLoading } = useQuery({
     queryKey: ['analytics', 'recruiter-performance', period],
     queryFn: async () => {
-      const response = await api.get(`/analytics/recruiter-performance?period=${period}`);
+      const response = await analyticsApi.getRecruiterPerformance(period);
       return response.data;
     },
   });

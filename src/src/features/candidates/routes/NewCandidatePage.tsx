@@ -215,7 +215,7 @@ export function NewCandidatePage() {
           {/* Error message */}
           {createMutation.isError && (
             <div className="p-3 bg-danger-50 border border-danger-200 rounded-lg text-danger-700 text-sm">
-              {createMutation.error?.response?.data?.error || 'Failed to create candidate'}
+              {(createMutation.error as any)?.response?.data?.error || 'Failed to create candidate'}
             </div>
           )}
 

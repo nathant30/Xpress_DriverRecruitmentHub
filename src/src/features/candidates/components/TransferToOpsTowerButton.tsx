@@ -114,7 +114,7 @@ export function TransferToOpsTowerButton({
 
             {transferMutation.isError && (
               <div className="mb-4 p-3 bg-danger-50 border border-danger-200 rounded-lg text-danger-700 text-sm">
-                {transferMutation.error?.response?.data?.message || 'Transfer failed. Please try again.'}
+                {(transferMutation.error as any)?.response?.data?.message || 'Transfer failed. Please try again.'}
               </div>
             )}
 

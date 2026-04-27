@@ -1,12 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
-  ArrowLeft, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Calendar,
-  Clock,
+  ArrowLeft,
+  Phone,
+  Mail,
+  MapPin,
   MessageSquare,
   FileText,
   CheckCircle2,
@@ -64,13 +62,6 @@ export function CandidateDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['candidate', id] });
       queryClient.invalidateQueries({ queryKey: ['candidates'] });
-    },
-  });
-
-  const logInteractionMutation = useMutation({
-    mutationFn: (data: any) => candidatesApi.logInteraction(id!, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['candidate', id] });
     },
   });
 

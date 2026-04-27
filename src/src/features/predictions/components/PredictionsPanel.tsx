@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/shared/lib/api';
+import { predictionsApi } from '@/shared/lib/api';
 import { Brain, AlertTriangle, Clock, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { QualityScoreCard } from './QualityScoreCard';
@@ -31,7 +31,7 @@ export function PredictionsPanel({ candidateId }: Props) {
   const { data, isLoading } = useQuery({
     queryKey: ['predictions', candidateId],
     queryFn: async () => {
-      const response = await api.get(`/predictions/candidates/${candidateId}`);
+      const response = await predictionsApi.getCandidatePredictions(candidateId);
       return response.data;
     },
     enabled: !!candidateId,

@@ -1,20 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { api } from '@/shared/lib/api';
+import { fieldOperatorApi } from '@/shared/lib/api';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { 
-  MapPin, 
-  Users, 
-  Target, 
-  QrCode, 
+import {
+  Users,
+  Target,
+  QrCode,
   Camera,
   AlertTriangle,
   CheckCircle,
   Navigation,
   Calendar,
   Award,
-  Phone,
-  Clock
 } from 'lucide-react';
 
 interface DailyTarget {
@@ -59,7 +56,7 @@ export function FieldOperatorDashboard() {
   const { data: dailyTarget } = useQuery<DailyTarget>({
     queryKey: ['field-operator', 'daily-target'],
     queryFn: async () => {
-      const response = await api.get('/field-operator/daily-target');
+      const response = await fieldOperatorApi.getDailyTarget();
       return response.data;
     },
   });
@@ -69,29 +66,19 @@ export function FieldOperatorDashboard() {
     queryKey: ['field-operator', 'nearby-zones', location],
     queryFn: async () => {
       if (!location) return [];
-      const response = await api.get(
-        `/field-operator/zones/nearby?lat=${location.lat}&lng=${location.lng}&radius=5000`
-      );
-      return response.data.zones;
+      // nearby zones not yet in r8; fallback to empty until endpoint is added
+      return [];
     },
     enabled: !!location,
   });
 
   // Check-in mutation
   const checkInMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await api.post('/field-operator/check-in', data);
+    mutationFn: async (data: { lat?: number; lng?: number; zone_id?: string }) => {
+      const response = await fieldOperatorApi.checkIn(data);
       return response.data;
     },
     onSuccess: () => setIsCheckedIn(true),
-  });
-
-  // Quick registration mutation
-  const quickRegisterMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await api.post('/field-operator/quick-register', data);
-      return response.data;
-    },
   });
 
   const handleCheckIn = () => {
@@ -99,16 +86,15 @@ export function FieldOperatorDashboard() {
     checkInMutation.mutate({
       lat: location.lat,
       lng: location.lng,
-      activityType: 'STREET_RECRUITING',
     });
   };
 
   const handleSOS = () => {
     if (!location) return;
-    api.post('/field-operator/sos', {
+    fieldOperatorApi.sos({
       lat: location.lat,
       lng: location.lng,
-      reason: 'SAFETY',
+      message: 'SAFETY',
     });
     setShowSOSModal(false);
     alert('Emergency alert sent! Help is on the way.');
