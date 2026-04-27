@@ -131,7 +131,7 @@ function CandidateCard({ candidate }: CandidateCardProps) {
 }
 
 export function PipelinePage() {
-  const [selectedStage, _setSelectedStage] = useState<string | null>(null);
+  const [selectedStage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: candidatesData, isLoading } = useQuery({

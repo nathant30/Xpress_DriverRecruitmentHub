@@ -52,10 +52,11 @@ export function SourceQualityScoreboard({ scoreboard, isLoading, onViewDetail }:
       case 'totalApplications':
         comparison = a.totalApplications - b.totalApplications;
         break;
-      case 'tier':
+      case 'tier': {
         const tierOrder = { GOLD: 0, SILVER: 1, BRONZE: 2, UNRANKED: 3 };
         comparison = tierOrder[a.tier] - tierOrder[b.tier];
         break;
+      }
     }
     
     return sortDirection === 'asc' ? comparison : -comparison;

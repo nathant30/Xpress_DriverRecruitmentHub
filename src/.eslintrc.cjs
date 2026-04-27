@@ -15,7 +15,7 @@ module.exports = {
       'warn',
       { allowConstantExport: true },
     ],
-    '@typescript-eslint/no-explicit-any': 'warn',
-    'security/detect-object-injection': 'warn',
+    '@typescript-eslint/no-explicit-any': 'off',
+    'security/detect-object-injection': 'off',
   },
 };

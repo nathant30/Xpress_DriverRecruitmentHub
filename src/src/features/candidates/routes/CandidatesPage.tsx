@@ -31,7 +31,7 @@ const STAGE_BADGES: Record<string, string> = {
 export function CandidatesPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [filters, _setFilters] = useState<Record<string, any>>({});
+  const [filters] = useState<Record<string, any>>({});
 
   const { data, isLoading } = useQuery({
     queryKey: ['candidates', { page, search, ...filters }],
